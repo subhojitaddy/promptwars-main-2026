@@ -38,21 +38,16 @@ steps:
       - '--cpu-boost'
       - '--update-secrets=GEMINI_API_KEY=GEMINI_API_KEY:latest'
 
-  # 4. Build Frontend Container Image (Baking in Backend Service URL)
+  # 4. Build Frontend Container Image
   - name: 'gcr.io/cloud-builders/docker'
     id: 'build-frontend'
-    waitFor: ['deploy-backend']
-    entrypoint: 'bash'
     args:
-      - '-c'
-      - |
-        BACKEND_URL=$(gcloud run services describe mindfulflow-backend --region=${_REGION} --format="value(status.url)")
-        echo "Building frontend with VITE_API_URL=$${BACKEND_URL}"
-        docker build \
-          --build-arg VITE_API_URL=$${BACKEND_URL} \
-          -t ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/frontend:latest \
-          -f frontend/Dockerfile \
-          frontend
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/frontend:latest'
+      - '-f'
+      - 'frontend/Dockerfile'
+      - 'frontend'
 
   # 5. Push Frontend Image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
@@ -62,24 +57,27 @@ steps:
       - 'push'
       - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/frontend:latest'
 
-  # 6. Deploy Frontend to Cloud Run
+  # 6. Deploy Frontend to Cloud Run (Resolving Backend URL at runtime)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'deploy-frontend'
-    waitFor: ['push-frontend']
-    entrypoint: gcloud
+    waitFor: ['push-frontend', 'deploy-backend']
+    entrypoint: 'bash'
     args:
-      - 'run'
-      - 'deploy'
-      - 'mindfulflow-frontend'
-      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/frontend:latest'
-      - '--region=${_REGION}'
-      - '--platform=managed'
-      - '--allow-unauthenticated'
-      - '--memory=256Mi'
-      - '--cpu=1'
-      - '--min-instances=0'
-      - '--max-instances=10'
-      - '--cpu-boost'
+      - '-c'
+      - |
+        BACKEND_URL=$(gcloud run services describe mindfulflow-backend --region=${_REGION} --format="value(status.url)")
+        echo "Deploying frontend with BACKEND_URL=$${BACKEND_URL}"
+        gcloud run deploy mindfulflow-frontend \
+          --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/frontend:latest \
+          --region=${_REGION} \
+          --platform=managed \
+          --allow-unauthenticated \
+          --memory=256Mi \
+          --cpu=1 \
+          --min-instances=0 \
+          --max-instances=10 \
+          --cpu-boost \
+          --set-env-vars=BACKEND_URL=$${BACKEND_URL}
 
 images:
   - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/backend:latest'

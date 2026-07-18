@@ -15,9 +15,13 @@ RUN npm run build
 # Stage 2: Deploy and serve static assets with Nginx
 FROM nginx:alpine
 
+ENV PORT=80
+ENV BACKEND_URL=http://backend:8000
+
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 
-CMD ["sh", "-c", "sed -i \"s/80/${PORT:-80}/g\" /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+CMD ["nginx", "-g", "daemon off;"]
 

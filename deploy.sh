@@ -2,7 +2,7 @@
 set -e
 
 # Configuration variables
-REGION="us-central1"
+REGION="asia-south2"
 REPOSITORY="mindfulflow"
 
 echo "=============================================="
