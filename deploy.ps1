@@ -82,7 +82,7 @@ if (!$RepoExists) {
 
 # Execute Google Cloud Build
 Write-Host "`nTriggering Google Cloud Build to compile and deploy services..." -ForegroundColor Yellow
-gcloud builds submit --config=cloudbuild.yaml --substitutions=_REGION=$Region,_REPOSITORY=$Repository
+gcloud builds submit --config=cloudbuild.yaml --substitutions "_REGION=$Region,_REPOSITORY=$Repository"
 
 Write-Host "`n==============================================" -ForegroundColor Green
 Write-Host " Deployment Complete!" -ForegroundColor Green
