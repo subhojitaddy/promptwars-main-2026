@@ -1,6 +1,6 @@
 # deploy.ps1 - GCP Cloud Run Deployment Automation Script
 
-$Region = "us-central1"
+$Region = "asia-south2"
 $Repository = "mindfulflow"
 
 Write-Host "==============================================" -ForegroundColor Cyan
@@ -66,6 +66,22 @@ $ServiceAccount = "${ProjectNumber}-compute@developer.gserviceaccount.com"
 gcloud secrets add-iam-policy-binding GEMINI_API_KEY `
   --member="serviceAccount:$ServiceAccount" `
   --role="roles/secretmanager.secretAccessor"
+
+# Grant permissions to Cloud Build Service Account to allow querying and deploying Cloud Run
+Write-Host "`nGranting Cloud Run permissions to Cloud Build Service Account..." -ForegroundColor Yellow
+$BuildServiceAccount = "${ProjectNumber}@cloudbuild.gserviceaccount.com"
+
+gcloud projects add-iam-policy-binding $ProjectId `
+  --member="serviceAccount:$BuildServiceAccount" `
+  --role="roles/run.developer"
+
+gcloud projects add-iam-policy-binding $ProjectId `
+  --member="serviceAccount:$BuildServiceAccount" `
+  --role="roles/run.viewer"
+
+gcloud iam service-accounts add-iam-policy-binding $ServiceAccount `
+  --member="serviceAccount:$BuildServiceAccount" `
+  --role="roles/iam.serviceAccountUser"
 
 # Artifact Registry Repository Creation
 Write-Host "`nChecking Artifact Registry repository [$Repository] in region [$Region]..." -ForegroundColor Yellow

@@ -70,6 +70,22 @@ gcloud secrets add-iam-policy-binding GEMINI_API_KEY \
   --member="serviceAccount:$SERVICE_ACCOUNT" \
   --role="roles/secretmanager.secretAccessor"
 
+# Grant permissions to Cloud Build Service Account to allow querying and deploying Cloud Run
+echo -e "\nGranting Cloud Run permissions to Cloud Build Service Account..."
+BUILD_SERVICE_ACCOUNT="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$BUILD_SERVICE_ACCOUNT" \
+  --role="roles/run.developer"
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$BUILD_SERVICE_ACCOUNT" \
+  --role="roles/run.viewer"
+
+gcloud iam service-accounts add-iam-policy-binding "$SERVICE_ACCOUNT" \
+  --member="serviceAccount:$BUILD_SERVICE_ACCOUNT" \
+  --role="roles/iam.serviceAccountUser"
+
 # Artifact Registry Repository Creation
 echo -e "\nChecking Artifact Registry repository [$REPOSITORY] in region [$REGION]..."
 if ! gcloud artifacts repositories list --location="$REGION" --filter="name:projects/$PROJECT_ID/locations/$REGION/repositories/$REPOSITORY" --format="value(name)" 2>/dev/null | grep -q "$REPOSITORY"; then
